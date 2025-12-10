@@ -9,19 +9,19 @@ export type PricingType = {
 
 export class Pricing implements PricingType {
 	@IsNotEmpty()
-	@IsNumber({ maxDecimalPlaces: 2 })
+	@IsNumber({ maxDecimalPlaces: 0 })
 	cd: number;
 
 	@IsNotEmpty()
-	@IsNumber({ maxDecimalPlaces: 2 })
+	@IsNumber({ maxDecimalPlaces: 0 })
 	vinyl: number;
 
 	@IsNotEmpty()
-	@IsNumber({ maxDecimalPlaces: 2 })
+	@IsNumber({ maxDecimalPlaces: 0 })
 	cassette: number;
 
 	@IsNotEmpty()
-	@IsNumber({ maxDecimalPlaces: 2 })
+	@IsNumber({ maxDecimalPlaces: 0 })
 	digital: number;
 }
 

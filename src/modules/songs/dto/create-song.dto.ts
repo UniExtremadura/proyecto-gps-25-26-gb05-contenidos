@@ -24,6 +24,8 @@ export class CreateSongDto {
 		if (typeof value === 'string') {
 			const parsed = JSON.parse(value);
 			return Object.assign(new Pricing(), parsed);
+		} else {
+			return value;
 		}
 	})
 	@Type(() => Pricing)

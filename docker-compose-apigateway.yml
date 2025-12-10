@@ -1,0 +1,49 @@
+services:
+  etcd:
+    image: bitnamilegacy/etcd:latest
+    container_name: etcd
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: "http://etcd:2379"
+      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+    networks:
+      - apisix
+    volumes:
+      - etcd-data:/bitnami/etcd
+
+  apisix:
+    image: apache/apisix:latest
+    container_name: apisix
+    depends_on:
+      - etcd
+    restart: always
+    volumes:
+      - ./apisix_config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    ports:
+      - "9080:9080"
+    networks:
+      - apisix
+      - undersounds
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  apisix-dashboard:
+    image: apache/apisix-dashboard:latest
+    container_name: apisix-dashboard
+    depends_on:
+      - apisix
+    restart: always
+    ports:
+      - "9000:9000"
+    networks:
+      - apisix
+    volumes:
+      - ./dashboard_config.yaml:/usr/local/apisix-dashboard/conf/conf.yaml:ro
+
+volumes:
+  etcd-data:
+
+networks:
+  apisix:
+  undersounds:
+    external: true

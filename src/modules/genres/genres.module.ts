@@ -5,10 +5,12 @@ import { GenresService } from './genres.service';
 import { GenresController } from './genres.controller';
 import { HttpModule } from '@nestjs/axios';
 import { ServiceTokenProvider } from '../../common/providers/service-token.provider';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
 	imports: [
 		MongooseModule.forFeature([{ name: Genre.name, schema: GenreSchema }]),
+		CacheModule.register(),
 		HttpModule,
 	],
 	controllers: [GenresController],

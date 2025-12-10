@@ -10,6 +10,13 @@ import { Genre } from '../../genres/schemas/genre.schema';
 
 export type SongDocument = HydratedDocument<Song>;
 
+export enum SongFormats {
+	MP3128 = 'mp3-128',
+	MP3320 = 'mp3-320',
+	AAC = 'aac',
+	FLAC = 'flac',
+}
+
 @Schema({
 	versionKey: false,
 	toJSON: {
@@ -48,6 +55,12 @@ export class Song {
 
 	@Prop({ type: Pricing, required: true })
 	pricing: PricingType;
+
+	@Prop({ type: [String], default: [] })
+	formats: SongFormats[];
+
+    @Prop({default: 0})
+    plays: number;
 }
 
 export const SongSchema = SchemaFactory.createForClass(Song);

@@ -1,8 +1,10 @@
 import {
-	Injectable,
-	InternalServerErrorException,
-	NotFoundException,
-	UnauthorizedException,
+    forwardRef,
+    Inject,
+    Injectable,
+    InternalServerErrorException,
+    NotFoundException,
+    UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Album } from './schemas/album.schema';
@@ -18,7 +20,9 @@ import { GenresService } from '../genres/genres.service';
 export class AlbumsService {
 	constructor(
 		@InjectModel(Album.name) private albumModel: Model<Album>,
-		private readonly songsService: SongsService,
+        @Inject(forwardRef(() => SongsService))
+        private readonly songsService: SongsService,
+        @Inject(forwardRef(() => ArtistsService))
 		private readonly artistsService: ArtistsService,
 		private readonly genresService: GenresService,
 		private readonly elasticsearchSyncService: ElasticsearchSyncService,
@@ -34,9 +38,33 @@ export class AlbumsService {
 		return this.albumModel.find();
 	}
 
+	async findByAuthorUuid(uuid: string): Promise<Album[]> {
+		const artist = await this.artistsService.findOneByUuid(uuid);
+		return this.albumModel
+			.find({ author: artist._id })
+			.sort({ releaseDate: -1 })
+			.populate(['author', 'genres'])
+			.populate({
+				path: 'songs',
+				populate: [{ path: 'author' }, { path: 'featuring' }, { path: 'genres' }],
+			});
+	}
+
 	async findOneByUuid(uuid: string): Promise<Album> {
 		const album = await this.albumModel.findOne({ uuid });
 		if (!album) throw new NotFoundException();
+		return album;
+	}
+
+	async findOneByIdAndPopulate(id: Types.ObjectId): Promise<Album> {
+		const album = await this.albumModel
+			.findById(id)
+			.populate(['author', 'genres'])
+			.populate({
+				path: 'songs',
+				populate: [{ path: 'author' }, { path: 'featuring' }, { path: 'genres' }],
+			});
+		if (!album) throw NotFoundException;
 		return album;
 	}
 
@@ -66,7 +94,7 @@ export class AlbumsService {
 			}
 
 			for (const genreId of song.genres) {
-				if (!genreIds.includes(genreId as Types.ObjectId)) {
+				if (!genreIds.some(g => g.toString() === genreId.toString())) {
 					genreIds.push(genreId as Types.ObjectId);
 				}
 			}
@@ -81,8 +109,10 @@ export class AlbumsService {
 				author: author._id,
 				songs: songIds,
 				genres: genreIds,
-				duration,
+				duration: Math.round(duration),
 			});
+			createdAlbum.cover = `${process.env.APP_BASE_URL}/static/public/album-covers/${createdAlbum.uuid}`;
+
 			const album = await createdAlbum.save();
 			const populatedAlbum = await this.findOneByUuidAndPopulate(album.uuid);
 			const aux: any = (populatedAlbum as any).toObject();
@@ -117,6 +147,7 @@ export class AlbumsService {
 		const album = await this.findOneByUuid(uuid);
 		const songIds: Types.ObjectId[] = [];
 		const genreIds: Types.ObjectId[] = [];
+		console.log(updateAlbumDto);
 
 		if (!(await this.isAuthor(updateAlbumDto.author!, uuid))) {
 			throw new UnauthorizedException();
@@ -144,11 +175,12 @@ export class AlbumsService {
 		const updatedAlbum = await this.albumModel.findOneAndUpdate(
 			{ uuid },
 			{
-				...album,
 				...updateAlbumDto,
-				songs: updateAlbumDto.songs ? album.songs : songIds,
-				genres: updateAlbumDto.songs ? album.genres : genreIds,
+				author: album.author,
+				songs: updateAlbumDto.songs ? songIds : album.songs,
+				genres: updateAlbumDto.songs ? genreIds : album.genres,
 			},
+			{ new: true }
 		);
 
 		const populatedAlbum = await this.findOneByUuidAndPopulate(
@@ -179,5 +211,10 @@ export class AlbumsService {
 		);
 
 		return populatedAlbum;
+	}
+
+	async deleteByUuid(uuid: string): Promise<void> {
+		await this.elasticsearchSyncService.delete('releases', 'album', uuid);
+		await this.albumModel.findOneAndDelete({ uuid });
 	}
 }
