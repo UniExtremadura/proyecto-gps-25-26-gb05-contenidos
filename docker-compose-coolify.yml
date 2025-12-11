@@ -67,7 +67,6 @@ services:
     environment:
       discovery.type: single-node
       xpack.security.enabled: false
-      csp.strict: false
     mem_limit: 1500m
     volumes:
       - contenidos-elasticsearch-data:/usr/share/elasticsearch/data
