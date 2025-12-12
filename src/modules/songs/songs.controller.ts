@@ -196,7 +196,7 @@ export class SongsController {
 				{ name: 'cover', maxCount: 1 },
 			],
 			{
-				limits: { fileSize: 40 * 1024 * 1024 },
+				limits: { fileSize: 100 * 1024 * 1024 },
 				fileFilter: (req, file, cb) => {
 					if (
 						file.fieldname === 'file' &&
